@@ -1,0 +1,6 @@
+2026-11-12 16:02:01 | ERROR | ValueError al registrar orden: El folio de la orden no puede estar vacío.
+2026-11-12 16:02:01 | ERROR | ValueError al registrar orden: La memoria RAM debe ser un número entero válido.
+2026-11-12 16:02:01 | ERROR | ValorFueraDeRangoError al registrar orden: El campo 'Mano de obra' debe estar entre 0 y 1,000,000.
+2026-11-12 16:02:01 | ERROR | RegistroDuplicadoError: El folio 'ORD-100' ya se encuentra registrado. (UNIQUE constraint failed: ordenes.folio)
+2026-11-12 16:02:01 | ERROR | RegistroNoEncontradoError: No se encontraron órdenes que coincidan con 'ORD-999'.
+2026-11-12 16:02:01 | ERROR | FileNotFoundError: [Errno 2] No such file or directory: 'archivo_inexistente.txt'

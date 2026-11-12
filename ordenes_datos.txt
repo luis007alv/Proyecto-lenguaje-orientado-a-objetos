@@ -1,6 +1,10 @@
 [
     {
         "folio": "ORD-100",
+        "estado": "Recibido",
+        "costoManoObra": 0.0,
+        "costoRepuestos": 0.0,
+        "descuento": 0.0,
         "costoTotal": 2500.0,
         "cliente": {
             "nombre": "Cliente de prueba",
@@ -13,10 +17,36 @@
             "especialidad": "Microelectrónica"
         },
         "dispositivo": {
+            "tipo": "Computadora",
             "marca": "Dell",
             "modelo": "XPS 13",
             "falla": "Pantalla rota",
             "ram": 16
+        }
+    },
+    {
+        "folio": "ORD-101",
+        "estado": "Recibido",
+        "costoManoObra": 650.0,
+        "costoRepuestos": 1850.0,
+        "descuento": 100.0,
+        "costoTotal": 2400.0,
+        "cliente": {
+            "nombre": "Andrés Martínez",
+            "telefono": "4429876543",
+            "direccion": "Álamos 2da Sección 88"
+        },
+        "tecnico": {
+            "nombre": "Carlos Mendoza",
+            "telefono": "4427773344",
+            "especialidad": "Software y Sistemas"
+        },
+        "dispositivo": {
+            "tipo": "DispositivoMovil",
+            "marca": "Samsung",
+            "modelo": "Galaxy S23",
+            "falla": "Pantalla estrellada",
+            "imei": "356789012345678"
         }
     }
 ]
