@@ -1,6 +1,6 @@
-2026-11-12 16:02:01 | ERROR | ValueError al registrar orden: El folio de la orden no puede estar vacío.
-2026-11-12 16:02:01 | ERROR | ValueError al registrar orden: La memoria RAM debe ser un número entero válido.
-2026-11-12 16:02:01 | ERROR | ValorFueraDeRangoError al registrar orden: El campo 'Mano de obra' debe estar entre 0 y 1,000,000.
-2026-11-12 16:02:01 | ERROR | RegistroDuplicadoError: El folio 'ORD-100' ya se encuentra registrado. (UNIQUE constraint failed: ordenes.folio)
-2026-11-12 16:02:01 | ERROR | RegistroNoEncontradoError: No se encontraron órdenes que coincidan con 'ORD-999'.
-2026-11-12 16:02:01 | ERROR | FileNotFoundError: [Errno 2] No such file or directory: 'archivo_inexistente.txt'
+2026-11-16 00:49:22 | ERROR | FileNotFoundError: No existía temporal_inexistente.txt, se creó vacío. [Errno 2] No such file or directory: '/home/bard/SGRT_ProyectoFinal/temporal_inexistente.txt'
+2026-11-16 00:49:22 | ERROR | ValorFueraDeRangoError: El costo total de la orden no puede ser negativo.
+2026-11-16 00:49:22 | ERROR | ValueError: La memoria RAM debe ser un número entero.
+2026-11-16 00:49:22 | ERROR | RegistroNoEncontradoError: No se encontraron órdenes con 'ORD-999'.
+2026-11-16 00:49:22 | ERROR | RegistroDuplicadoError: Ya existe un cliente registrado con el nombre 'Santiago Alarcón'. (UNIQUE constraint failed: clientes.nombre)
+2026-11-15 19:47:49 | ERROR | ValueError al registrar cliente: El nombre no puede estar vacío.

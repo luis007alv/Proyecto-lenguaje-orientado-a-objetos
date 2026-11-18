@@ -1,51 +1,49 @@
 [
     {
         "folio": "ORD-100",
-        "estado": "Recibido",
-        "costoManoObra": 0.0,
-        "costoRepuestos": 0.0,
-        "descuento": 0.0,
+        "estado": "Reparación",
+        "costoComponentes": 1500.0,
+        "costoManoObra": 1000.0,
         "costoTotal": 2500.0,
         "cliente": {
-            "nombre": "Cliente de prueba",
-            "telefono": "0000000000",
-            "direccion": "Dirección de prueba"
+            "nombre": "Santiago Alarcón",
+            "telefono": "4421112233",
+            "direccion": "Centro Histórico, Querétaro"
         },
         "tecnico": {
-            "nombre": "Técnico de prueba",
-            "telefono": "0000000000",
+            "nombre": "Luis Álvarez",
+            "telefono": "4429998877",
             "especialidad": "Microelectrónica"
         },
         "dispositivo": {
             "tipo": "Computadora",
             "marca": "Dell",
             "modelo": "XPS 13",
-            "falla": "Pantalla rota",
+            "fallaReportada": "Pantalla rota",
             "ram": 16
         }
     },
     {
         "folio": "ORD-101",
-        "estado": "Recibido",
-        "costoManoObra": 650.0,
-        "costoRepuestos": 1850.0,
-        "descuento": 100.0,
-        "costoTotal": 2400.0,
+        "estado": "En diagnóstico",
+        "costoComponentes": 850.0,
+        "costoManoObra": 500.0,
+        "costoTotal": 1350.0,
         "cliente": {
-            "nombre": "Andrés Martínez",
-            "telefono": "4429876543",
-            "direccion": "Álamos 2da Sección 88"
+            "nombre": "Sofía Hernández",
+            "telefono": "4423456789",
+            "direccion": "Juriquilla Santa Fe 45"
         },
         "tecnico": {
-            "nombre": "Carlos Mendoza",
-            "telefono": "4427773344",
-            "especialidad": "Software y Sistemas"
+            "nombre": "Valeria Domínguez",
+            "telefono": "4425551122",
+            "especialidad": "Dispositivos Móviles"
         },
         "dispositivo": {
             "tipo": "DispositivoMovil",
             "marca": "Samsung",
             "modelo": "Galaxy S23",
-            "falla": "Pantalla estrellada",
+            "fallaReportada": "Batería inflada",
             "imei": "356789012345678"
         }
     }

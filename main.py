@@ -1,22 +1,19 @@
-"""Punto de entrada principal del Sistema de Gestión de Reparaciones Tecnológicas (SGRT)."""
+"""Archivo principal de inicio para el Sistema de Gestión de Reparaciones Tecnológicas."""
 
 from tkinter import messagebox
 
-from interfaz import AplicacionSGRT
+from interfaz import InterfazTaller
 from persistencia import registrarError
 
 
 def main():
-    """Inicializa y ejecuta la interfaz gráfica principal del SGRT."""
+    """Inicia la interfaz gráfica principal del taller."""
     try:
-        aplicacion = AplicacionSGRT()
-        aplicacion.mainloop()
-    except Exception as exc:
-        registrarError(f"{type(exc).__name__}: Error crítico al iniciar la aplicación. {exc}")
-        messagebox.showerror(
-            "Error crítico",
-            f"No fue posible iniciar el sistema SGRT:\n{exc}",
-        )
+        app = InterfazTaller()
+        app.mainloop()
+    except Exception as e:
+        registrarError(f"{type(e).__name__}: Error al iniciar la aplicación. {e}")
+        messagebox.showerror("Error", f"Ocurrió un problema al iniciar el sistema:\n{e}")
 
 
 if __name__ == "__main__":
