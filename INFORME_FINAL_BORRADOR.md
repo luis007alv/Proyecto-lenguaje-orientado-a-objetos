@@ -73,7 +73,11 @@ El diagrama actualizado se encuentra en el archivo [`uml_actualizado.svg`](uml_a
 ---
 
 ## 6. Interfaz gráfica
-*(Ejecuta `python3 main.py` y agrega capturas legibles con su pie explicativo):*
+<img width="1024" height="665" alt="image" src="https://github.com/user-attachments/assets/894ca248-ce3d-4406-ab13-d6ec9d062ffe" />
+<img width="1024" height="665" alt="image" src="https://github.com/user-attachments/assets/4653ad2d-ca2a-484e-8c03-c89070acbff5" />
+<img width="1024" height="665" alt="image" src="https://github.com/user-attachments/assets/b7dba849-18bd-4bd8-b24d-f260124f7986" />
+<img width="1024" height="665" alt="image" src="https://github.com/user-attachments/assets/a180a6b4-4bb0-4945-802e-9a380a0a84be" />
+
 1. **Ventana principal y pestaña de Órdenes de Servicio:** Logo `logo_sgrt.png` visible en el encabezado, formulario de captura, botones CRUD, cálculo de total, resumen de ticket y listado `Treeview`.
 2. **Pestaña Catálogo de Clientes y Catálogo de Técnicos:** Formularios CRUD y sincronización inmediata con los `Combobox` de órdenes.
 3. **Pestaña Bitácora de Errores:** Visor en tiempo real de `log_errores.txt`.
@@ -87,7 +91,9 @@ El diagrama actualizado se encuentra en el archivo [`uml_actualizado.svg`](uml_a
 - **Registros duplicados, inexistentes o con dependencias:** `GestorBaseDatos` lanza `RegistroDuplicadoError` (ej. folio o nombre repetido), `RegistroNoEncontradoError` (ej. búsqueda sin coincidencias) y `ValueError` al intentar eliminar un cliente o técnico con órdenes asociadas, mostrando `messagebox.showerror`.
 - **Archivos:** `GestorArchivos` captura `FileNotFoundError`, `PermissionError` y `json.JSONDecodeError`.
 
-*(Insertar captura de `log_errores.txt` y captura de `messagebox` en pantalla).*
+<img width="1512" height="982" alt="image" src="https://github.com/user-attachments/assets/6b02e6dc-73e1-4464-b4ba-d368e7c0a1bc" />
+<img width="1512" height="982" alt="image" src="https://github.com/user-attachments/assets/348a33ee-c287-45e4-a471-a2d1d7cd3def" />
+
 
 ---
 
@@ -107,7 +113,8 @@ Ejecución verificada mediante `python3 pruebas.py` (12 de 12 pruebas aprobadas)
 | 9 | Error: valor fuera de rango | `costoTotal = -50.0` y RAM `4096` | Lanza `ValorFueraDeRangoError` | `ValorFueraDeRangoError` capturado | Sí | *(Agregar)* |
 | 10 | Error: registro duplicado | Registrar folio existente `ORD-100` | Lanza `RegistroDuplicadoError` | `RegistroDuplicadoError` capturado | Sí | *(Agregar)* |
 | 11 | Error: registro inexistente | Buscar o eliminar folio `ORD-999` | Lanza `RegistroNoEncontradoError` | `RegistroNoEncontradoError` capturado | Sí | *(Agregar)* |
-| 12 | Bitácora de errores | `registrarError("ValueError: Prueba unitaria de bitácora")` | Se guarda línea con fecha, hora y mensaje | Línea escrita y leída desde `log_errores.txt` | Sí | *(Agregar)* |
+| 12 | Bitácora de errores | `registrarError("ValueError: Prueba unitaria de bitácora")` | Se guarda línea con fecha, hora y mensaje | Línea escrita y leída desde `log_errores.txt` | Sí | <img width="1024" height="665" alt="image" src="https://github.com/user-attachments/assets/886ea978-c745-4fb9-824b-9a60283a9d4f" />
+ |
 
 ---
 
