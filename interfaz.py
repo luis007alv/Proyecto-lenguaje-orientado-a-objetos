@@ -60,7 +60,6 @@ class InterfazTaller(tk.Tk):
 
         frameTexto = tk.Frame(frameTop, bg="#1F2937")
         frameTexto.pack(side="left", fill="y")
-
         tk.Label(
             frameTexto,
             text="Sistema de Gestión de Reparaciones Tecnológicas",
@@ -68,7 +67,6 @@ class InterfazTaller(tk.Tk):
             bg="#1F2937",
             font=("Arial", 15, "bold"),
         ).pack(anchor="w")
-
         tk.Label(
             frameTexto,
             text="Control de Órdenes de Servicio, Clientes, Técnicos y Bitácora",
@@ -109,6 +107,7 @@ class InterfazTaller(tk.Tk):
         self._armarTabLog()
 
     # --- PESTAÑA ÓRDENES ---
+
     def _armarTabOrdenes(self):
         """Arma el formulario y tabla de órdenes de servicio."""
         frameIzq = tk.LabelFrame(self._tabOrdenes, text="Datos de la Orden", padx=10, pady=10)
@@ -252,7 +251,6 @@ class InterfazTaller(tk.Tk):
 
         frameResumen = tk.LabelFrame(frameDer, text="Resumen / Ticket de la Orden", padx=6, pady=6)
         frameResumen.pack(fill="x")
-
         self._txtResumen = tk.Text(frameResumen, height=7, font=("Courier", 9), state="disabled")
         self._txtResumen.pack(fill="x")
 
@@ -361,10 +359,8 @@ class InterfazTaller(tk.Tk):
             self._cargarLog()
             messagebox.showwarning("Campo vacío", msg)
             return
-
         if not messagebox.askyesno("Confirmar", f"¿Eliminar la orden '{folio}'?"):
             return
-
         try:
             self._gestorBd.eliminarOrden(folio)
             self._limpiarOrden()
@@ -445,7 +441,6 @@ class InterfazTaller(tk.Tk):
     def _llenarTablaOrdenes(self, ordenes):
         for item in self._treeOrdenes.get_children():
             self._treeOrdenes.delete(item)
-
         suma = 0.0
         for o in ordenes:
             suma += o.costoTotal
@@ -469,6 +464,7 @@ class InterfazTaller(tk.Tk):
         self._llenarTablaOrdenes(self._gestorBd.obtenerOrdenes())
 
     # --- PESTAÑA CLIENTES ---
+
     def _armarTabClientes(self):
         """Arma el formulario y tabla del catálogo de clientes."""
         frameIzq = tk.LabelFrame(self._tabClientes, text="Datos del Cliente", padx=12, pady=12)
@@ -515,6 +511,7 @@ class InterfazTaller(tk.Tk):
         self._treeClientes.heading("nombre", text="Nombre")
         self._treeClientes.heading("telefono", text="Teléfono")
         self._treeClientes.heading("direccion", text="Dirección")
+
         self._treeClientes.column("id", width=50, anchor="center")
         self._treeClientes.column("nombre", width=180)
         self._treeClientes.column("telefono", width=120, anchor="center")
@@ -548,11 +545,11 @@ class InterfazTaller(tk.Tk):
             self._cargarLog()
             messagebox.showwarning("Aviso", msg)
             return
-
         try:
             c = Cliente(self._varNomCliente.get(), self._varTelCliente.get(), self._varDirCliente.get())
             self._gestorBd.modificarCliente(self._idClienteActual, c)
             self._cargarClientes()
+            self._cargarTablaOrdenes()
             self._limpiarCliente()
             messagebox.showinfo("Éxito", "Cliente actualizado.")
         except (RegistroDuplicadoError, RegistroNoEncontradoError) as e:
@@ -570,18 +567,16 @@ class InterfazTaller(tk.Tk):
             self._cargarLog()
             messagebox.showwarning("Aviso", msg)
             return
-
         if not messagebox.askyesno("Confirmar", "¿Eliminar el cliente seleccionado?"):
             return
-
         try:
             self._gestorBd.eliminarCliente(self._idClienteActual)
             self._cargarClientes()
             self._limpiarCliente()
             messagebox.showinfo("Eliminado", "Cliente eliminado.")
-        except RegistroNoEncontradoError as e:
+        except (RegistroNoEncontradoError, ValueError) as e:
             self._cargarLog()
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("No se puede eliminar", str(e))
 
     def _alSeleccionarCliente(self, _evento=None):
         sel = self._treeClientes.selection()
@@ -605,18 +600,17 @@ class InterfazTaller(tk.Tk):
         for item in self._treeClientes.get_children():
             self._treeClientes.delete(item)
         self._mapaClientes.clear()
-
         nombres = []
         for idC, cliente in self._gestorBd.obtenerClientes():
             self._treeClientes.insert("", "end", values=(idC, cliente.nombre, cliente.telefono, cliente.direccion))
             self._mapaClientes[cliente.nombre] = cliente
             nombres.append(cliente.nombre)
-
         self._comboCliente["values"] = nombres
         if nombres and self._varCliente.get() not in self._mapaClientes:
             self._varCliente.set(nombres[0])
 
     # --- PESTAÑA TÉCNICOS ---
+
     def _armarTabTecnicos(self):
         """Arma el formulario y tabla del catálogo de técnicos."""
         frameIzq = tk.LabelFrame(self._tabTecnicos, text="Datos del Técnico", padx=12, pady=12)
@@ -668,6 +662,7 @@ class InterfazTaller(tk.Tk):
         self._treeTecnicos.heading("nombre", text="Nombre")
         self._treeTecnicos.heading("telefono", text="Teléfono")
         self._treeTecnicos.heading("especialidad", text="Especialidad")
+
         self._treeTecnicos.column("id", width=50, anchor="center")
         self._treeTecnicos.column("nombre", width=180)
         self._treeTecnicos.column("telefono", width=120, anchor="center")
@@ -701,11 +696,11 @@ class InterfazTaller(tk.Tk):
             self._cargarLog()
             messagebox.showwarning("Aviso", msg)
             return
-
         try:
             t = Tecnico(self._varNomTecnico.get(), self._varTelTecnico.get(), self._varEspTecnico.get())
             self._gestorBd.modificarTecnico(self._idTecnicoActual, t)
             self._cargarTecnicos()
+            self._cargarTablaOrdenes()
             self._limpiarTecnico()
             messagebox.showinfo("Éxito", "Técnico actualizado.")
         except (RegistroDuplicadoError, RegistroNoEncontradoError) as e:
@@ -723,18 +718,16 @@ class InterfazTaller(tk.Tk):
             self._cargarLog()
             messagebox.showwarning("Aviso", msg)
             return
-
         if not messagebox.askyesno("Confirmar", "¿Eliminar el técnico seleccionado?"):
             return
-
         try:
             self._gestorBd.eliminarTecnico(self._idTecnicoActual)
             self._cargarTecnicos()
             self._limpiarTecnico()
             messagebox.showinfo("Eliminado", "Técnico eliminado.")
-        except RegistroNoEncontradoError as e:
+        except (RegistroNoEncontradoError, ValueError) as e:
             self._cargarLog()
-            messagebox.showerror("Error", str(e))
+            messagebox.showerror("No se puede eliminar", str(e))
 
     def _alSeleccionarTecnico(self, _evento=None):
         sel = self._treeTecnicos.selection()
@@ -758,23 +751,21 @@ class InterfazTaller(tk.Tk):
         for item in self._treeTecnicos.get_children():
             self._treeTecnicos.delete(item)
         self._mapaTecnicos.clear()
-
         nombres = []
         for idT, tecnico in self._gestorBd.obtenerTecnicos():
             self._treeTecnicos.insert("", "end", values=(idT, tecnico.nombre, tecnico.telefono, tecnico.especialidad))
             self._mapaTecnicos[tecnico.nombre] = tecnico
             nombres.append(tecnico.nombre)
-
         self._comboTecnico["values"] = nombres
         if nombres and self._varTecnico.get() not in self._mapaTecnicos:
             self._varTecnico.set(nombres[0])
 
     # --- PESTAÑA BITÁCORA ---
+
     def _armarTabLog(self):
         """Arma el visor del archivo log_errores.txt."""
         frameTop = tk.Frame(self._tabLog)
         frameTop.pack(fill="x", padx=10, pady=(10, 5))
-
         tk.Label(frameTop, text="Registro de errores (log_errores.txt):", font=("Arial", 10, "bold")).pack(
             side="left"
         )
