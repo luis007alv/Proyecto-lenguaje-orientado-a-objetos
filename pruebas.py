@@ -4,22 +4,20 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from modelos import (
-    Cliente,
-    Computadora,
-    DispositivoMovil,
-    OrdenServicio,
+from dispositivo import Computadora, DispositivoMovil
+from excepciones import (
     RegistroDuplicadoError,
     RegistroNoEncontradoError,
-    Tecnico,
     ValorFueraDeRangoError,
 )
+from orden_servicio import OrdenServicio
 import persistencia
-from persistencia import GestorArchivos, GestorBaseDatos, leerBitacora, registrarError
+from persistencia import GestorArchivos, GestorBaseDatos, leerLog, registrarError
+from persona import Cliente, Tecnico
 
 
 class PruebasSistemaSGRT(unittest.TestCase):
-    """Valida modelos POO, persistencia SQLite/TXT, cálculos y manejo de excepciones."""
+    """Valida modelos POO, persistencia SQLite/TXT, cálculos, integridad y excepciones."""
 
     def setUp(self):
         self.tempDir = tempfile.TemporaryDirectory()
@@ -27,6 +25,7 @@ class PruebasSistemaSGRT(unittest.TestCase):
         self.rutaBd = self.rutaTemp / "test_catalogos.db"
         self.rutaTxt = self.rutaTemp / "test_ordenes.txt"
         self.rutaLog = self.rutaTemp / "test_log.txt"
+
         self.logOriginal = persistencia.rutaLog
         persistencia.rutaLog = self.rutaLog
         self.gestor = GestorBaseDatos(self.rutaBd, self.rutaTxt)
@@ -40,63 +39,91 @@ class PruebasSistemaSGRT(unittest.TestCase):
         cliente = Cliente("María López", "4421234567", "Calle Reforma 10")
         tecnico = Tecnico("Samuel Isaza", "4429998877", "Microelectrónica")
         equipo = Computadora("HP", "Pavilion 15", "No enciende", "16")
-        orden = OrdenServicio("ORD-201", cliente, tecnico, equipo, "800", "1200", "100")
-        orden.calcularCostoTotal()
-
+        orden = OrdenServicio(
+            "ORD-201",
+            cliente,
+            tecnico,
+            equipo,
+            costoComponentes="800",
+            costoManoObra="1200",
+        )
+        orden.calcularCosto()
         self.gestor.registrarOrden(orden)
+
         encontradas = self.gestor.buscarOrdenes("ORD-201")
         self.assertEqual(len(encontradas), 1)
-        self.assertEqual(encontradas[0].costoTotal, 1900.0)
+        self.assertEqual(encontradas[0].costoTotal, 2000.0)
 
     def test02AltaOrdenDispositivoMovilYPolimorfismo(self):
         """Caso 2 (Alta + Polimorfismo): Registrar orden con DispositivoMovil."""
         cliente = Cliente("Andrés Martínez", "4429876543", "Álamos 88")
         tecnico = Tecnico("Valeria Domínguez", "4425551122", "Dispositivos Móviles")
         movil = DispositivoMovil("Samsung", "Galaxy S23", "Batería inflada", "123456789012345")
-        orden = OrdenServicio("ORD-202", cliente, tecnico, movil, 500, 900, 0)
-        orden.calcularCostoTotal()
-
+        orden = OrdenServicio(
+            "ORD-202",
+            cliente,
+            tecnico,
+            movil,
+            costoComponentes=500,
+            costoManoObra=900,
+        )
+        orden.calcularCosto()
         self.gestor.registrarOrden(orden)
+
         self.assertIn("[Móvil]", str(orden))
         self.assertIn("123456789012345", str(orden))
+        self.assertEqual(orden.costoTotal, 1400.0)
 
     def test03ConsultaPorFolioYCliente(self):
         """Caso 3 (Consulta): Buscar órdenes existentes por folio y nombre de cliente."""
         resultados = self.gestor.buscarOrdenes("ORD-100")
         self.assertEqual(resultados[0].folio, "ORD-100")
+
         resultadosCliente = self.gestor.buscarOrdenes("Santiago")
         self.assertGreaterEqual(len(resultadosCliente), 1)
 
     def test04ModificacionOrdenYCalculo(self):
         """Caso 4 (Modificación + Cálculo): Actualizar costos y estado de una orden."""
         orden = self.gestor.buscarOrdenes("ORD-100")[0]
-        orden.costoManoObra = 1500
-        orden.costoRepuestos = 1500
-        orden.descuento = 200
-        orden.estado = "Listo"
-        orden.calcularCostoTotal()
-
+        orden.costoComponentes = 1800
+        orden.costoManoObra = 1200
+        orden.cambiarEstado("Entregado")
+        orden.calcularCosto()
         self.gestor.modificarOrden(orden)
-        actualizada = self.gestor.buscarOrdenes("ORD-100")[0]
-        self.assertEqual(actualizada.costoTotal, 2800.0)
-        self.assertEqual(actualizada.estado, "Listo")
 
-    def test05BajaOrden(self):
-        """Caso 5 (Baja): Eliminar una orden existente y confirmar que ya no aparece."""
+        actualizada = self.gestor.buscarOrdenes("ORD-100")[0]
+        self.assertEqual(actualizada.costoTotal, 3000.0)
+        self.assertEqual(actualizada.estado, "Entregado")
+
+    def test05BajaOrdenYIntegridadCatalogos(self):
+        """Caso 5 (Baja + Integridad): Bloquear borrado de cliente con orden y eliminar orden."""
+        clientes = self.gestor.obtenerClientes()
+        idSantiago = next(idC for idC, c in clientes if c.nombre == "Santiago Alarcón")
+
+        # No debe permitir borrar un cliente con orden activa
+        with self.assertRaises(ValueError):
+            self.gestor.eliminarCliente(idSantiago)
+
+        # Tras eliminar su orden, ya debe permitir eliminar el cliente
         self.gestor.eliminarOrden("ORD-100")
         with self.assertRaises(RegistroNoEncontradoError):
             self.gestor.buscarOrdenes("ORD-100")
 
+        self.gestor.eliminarCliente(idSantiago)
+        nombresRestantes = [c.nombre for _, c in self.gestor.obtenerClientes()]
+        self.assertNotIn("Santiago Alarcón", nombresRestantes)
+
     def test06PersistenciaAlReabrir(self):
-        """Caso 6 (Persistencia): Cerrar/reinstanciar GestorBaseDatos y validar datos."""
+        """Caso 6 (Persistencia): Reinstanciar GestorBaseDatos y validar datos en SQLite y TXT."""
         cliente = Cliente("Carlos Sandoval", "4424445566", "Milenio III 20")
         self.gestor.registrarCliente(cliente)
 
         nuevoGestor = GestorBaseDatos(self.rutaBd, self.rutaTxt)
         nombresClientes = [c.nombre for _, c in nuevoGestor.obtenerClientes()]
         self.assertIn("Carlos Sandoval", nombresClientes)
-        datosJson = GestorArchivos.cargarDatosPreconstruidos(self.rutaTxt)
-        self.assertTrue(any(d["folio"] == "ORD-100" for d in datosJson))
+
+        ordenesTxt = GestorArchivos.cargarOrdenes(self.rutaTxt)
+        self.assertTrue(any(o.folio == "ORD-100" for o in ordenesTxt))
 
     def test07ErrorCamposVacios(self):
         """Caso 7 (Error): Validar campo vacío en Cliente."""
@@ -132,7 +159,7 @@ class PruebasSistemaSGRT(unittest.TestCase):
     def test12RegistroBitacoraErrores(self):
         """Caso 12 (Bitácora): Verificar escritura con fecha y hora en archivo log."""
         registrarError("ValueError: Prueba unitaria de bitácora", self.rutaLog)
-        contenido = leerBitacora(self.rutaLog)
+        contenido = leerLog(self.rutaLog)
         self.assertIn("ERROR | ValueError: Prueba unitaria de bitácora", contenido)
 
 
