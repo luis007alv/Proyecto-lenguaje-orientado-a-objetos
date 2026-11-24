@@ -5,7 +5,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from dispositivo import DispositivoMovil
+from dispositivo import Computadora, DispositivoMovil
 from excepciones import RegistroDuplicadoError, RegistroNoEncontradoError
 from orden_servicio import OrdenServicio
 from persona import Cliente, Tecnico
@@ -54,7 +54,6 @@ class GestorArchivos:
                 datos.append(item.toDict())
             else:
                 datos.append(item)
-
         try:
             with open(destino, "w", encoding="utf-8") as archivo:
                 json.dump(datos, archivo, indent=4, ensure_ascii=False)
@@ -166,7 +165,6 @@ class GestorBaseDatos:
         """Inserta registros iniciales de ejemplo si la base de datos está vacía."""
         if self.obtenerClientes() or self.obtenerTecnicos() or self.obtenerOrdenes():
             return
-
         try:
             c1 = Cliente("Santiago Alarcón", "4421112233", "Centro Histórico, Querétaro")
             c2 = Cliente("Sofía Hernández", "4423456789", "Juriquilla Santa Fe 45")
@@ -178,11 +176,8 @@ class GestorBaseDatos:
             self.registrarTecnico(t1)
             self.registrarTecnico(t2)
 
-            from dispositivo import Computadora
-
             pc = Computadora("Dell", "XPS 13", "Pantalla rota", 16)
             movil = DispositivoMovil("Samsung", "Galaxy S23", "Batería inflada", "356789012345678")
-
             orden1 = OrdenServicio("ORD-100", c1, t1, pc, 1500.0, 1000.0, "Reparación")
             orden2 = OrdenServicio("ORD-101", c2, t2, movil, 850.0, 500.0, "En diagnóstico")
             self.registrarOrden(orden1)
@@ -196,6 +191,7 @@ class GestorBaseDatos:
         GestorArchivos.guardarOrdenes(ordenes, self._rutaTxt)
 
     # --- OPERACIONES CLIENTES ---
+
     def registrarCliente(self, cliente):
         """Inserta un nuevo cliente en la tabla clientes."""
         conexion = None
@@ -225,9 +221,7 @@ class GestorBaseDatos:
         try:
             conexion = self._abrirConexion()
             cursor = conexion.cursor()
-            cursor.execute(
-                "SELECT id, nombre, telefono, direccion FROM clientes ORDER BY nombre ASC"
-            )
+            cursor.execute("SELECT id, nombre, telefono, direccion FROM clientes ORDER BY nombre ASC")
             filas = cursor.fetchall()
             return [(f[0], Cliente(f[1], f[2], f[3])) for f in filas]
         except sqlite3.Error as e:
@@ -238,18 +232,31 @@ class GestorBaseDatos:
                 conexion.close()
 
     def modificarCliente(self, idCliente, cliente):
-        """Actualiza los datos de un cliente existente por su ID."""
+        """Actualiza los datos de un cliente existente por su ID y sincroniza sus órdenes."""
         conexion = None
         try:
             conexion = self._abrirConexion()
             cursor = conexion.cursor()
+            cursor.execute("SELECT nombre FROM clientes WHERE id = ?", (idCliente,))
+            fila = cursor.fetchone()
+            if fila is None:
+                raise RegistroNoEncontradoError(f"No existe el cliente con ID {idCliente}.")
+            nombreAnterior = fila[0]
+
             cursor.execute(
                 "UPDATE clientes SET nombre = ?, telefono = ?, direccion = ? WHERE id = ?",
                 (cliente.nombre, cliente.telefono, cliente.direccion, idCliente),
             )
-            if cursor.rowcount == 0:
-                raise RegistroNoEncontradoError(f"No existe el cliente con ID {idCliente}.")
+            cursor.execute(
+                """
+                UPDATE ordenes
+                SET clienteNombre = ?, clienteTelefono = ?, clienteDireccion = ?
+                WHERE clienteNombre = ?
+                """,
+                (cliente.nombre, cliente.telefono, cliente.direccion, nombreAnterior),
+            )
             conexion.commit()
+            self._sincronizarTxt()
         except sqlite3.IntegrityError as e:
             msg = f"Ya existe otro cliente con el nombre '{cliente.nombre}'."
             registrarError(f"RegistroDuplicadoError: {msg} ({e})")
@@ -265,17 +272,31 @@ class GestorBaseDatos:
                 conexion.close()
 
     def eliminarCliente(self, idCliente):
-        """Elimina un cliente de la base de datos por su ID."""
+        """Elimina un cliente por su ID siempre que no tenga órdenes de servicio asociadas."""
         conexion = None
         try:
             conexion = self._abrirConexion()
             cursor = conexion.cursor()
-            cursor.execute("DELETE FROM clientes WHERE id = ?", (idCliente,))
-            if cursor.rowcount == 0:
+            cursor.execute("SELECT nombre FROM clientes WHERE id = ?", (idCliente,))
+            fila = cursor.fetchone()
+            if fila is None:
                 raise RegistroNoEncontradoError(f"No se encontró el cliente con ID {idCliente}.")
+            nombreCliente = fila[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM ordenes WHERE clienteNombre = ?",
+                (nombreCliente,),
+            )
+            ordenesAsociadas = cursor.fetchone()[0]
+            if ordenesAsociadas > 0:
+                raise ValueError(
+                    f"No se puede eliminar al cliente '{nombreCliente}' porque tiene {ordenesAsociadas} orden(es) de servicio asociada(s)."
+                )
+
+            cursor.execute("DELETE FROM clientes WHERE id = ?", (idCliente,))
             conexion.commit()
-        except RegistroNoEncontradoError as e:
-            registrarError(f"RegistroNoEncontradoError: {e}")
+        except (RegistroNoEncontradoError, ValueError) as e:
+            registrarError(f"{type(e).__name__}: {e}")
             raise
         except sqlite3.Error as e:
             registrarError(f"sqlite3.Error al eliminar cliente: {e}")
@@ -285,6 +306,7 @@ class GestorBaseDatos:
                 conexion.close()
 
     # --- OPERACIONES TÉCNICOS ---
+
     def registrarTecnico(self, tecnico):
         """Inserta un nuevo técnico en la tabla tecnicos."""
         conexion = None
@@ -314,9 +336,7 @@ class GestorBaseDatos:
         try:
             conexion = self._abrirConexion()
             cursor = conexion.cursor()
-            cursor.execute(
-                "SELECT id, nombre, telefono, especialidad FROM tecnicos ORDER BY nombre ASC"
-            )
+            cursor.execute("SELECT id, nombre, telefono, especialidad FROM tecnicos ORDER BY nombre ASC")
             filas = cursor.fetchall()
             return [(f[0], Tecnico(f[1], f[2], f[3])) for f in filas]
         except sqlite3.Error as e:
@@ -327,18 +347,31 @@ class GestorBaseDatos:
                 conexion.close()
 
     def modificarTecnico(self, idTecnico, tecnico):
-        """Actualiza los datos de un técnico existente por su ID."""
+        """Actualiza los datos de un técnico existente por su ID y sincroniza sus órdenes."""
         conexion = None
         try:
             conexion = self._abrirConexion()
             cursor = conexion.cursor()
+            cursor.execute("SELECT nombre FROM tecnicos WHERE id = ?", (idTecnico,))
+            fila = cursor.fetchone()
+            if fila is None:
+                raise RegistroNoEncontradoError(f"No existe el técnico con ID {idTecnico}.")
+            nombreAnterior = fila[0]
+
             cursor.execute(
                 "UPDATE tecnicos SET nombre = ?, telefono = ?, especialidad = ? WHERE id = ?",
                 (tecnico.nombre, tecnico.telefono, tecnico.especialidad, idTecnico),
             )
-            if cursor.rowcount == 0:
-                raise RegistroNoEncontradoError(f"No existe el técnico con ID {idTecnico}.")
+            cursor.execute(
+                """
+                UPDATE ordenes
+                SET tecnicoNombre = ?, tecnicoTelefono = ?, tecnicoEspecialidad = ?
+                WHERE tecnicoNombre = ?
+                """,
+                (tecnico.nombre, tecnico.telefono, tecnico.especialidad, nombreAnterior),
+            )
             conexion.commit()
+            self._sincronizarTxt()
         except sqlite3.IntegrityError as e:
             msg = f"Ya existe otro técnico con el nombre '{tecnico.nombre}'."
             registrarError(f"RegistroDuplicadoError: {msg} ({e})")
@@ -354,17 +387,31 @@ class GestorBaseDatos:
                 conexion.close()
 
     def eliminarTecnico(self, idTecnico):
-        """Elimina un técnico de la base de datos por su ID."""
+        """Elimina un técnico por su ID siempre que no tenga órdenes de servicio asignadas."""
         conexion = None
         try:
             conexion = self._abrirConexion()
             cursor = conexion.cursor()
-            cursor.execute("DELETE FROM tecnicos WHERE id = ?", (idTecnico,))
-            if cursor.rowcount == 0:
+            cursor.execute("SELECT nombre FROM tecnicos WHERE id = ?", (idTecnico,))
+            fila = cursor.fetchone()
+            if fila is None:
                 raise RegistroNoEncontradoError(f"No se encontró el técnico con ID {idTecnico}.")
+            nombreTecnico = fila[0]
+
+            cursor.execute(
+                "SELECT COUNT(*) FROM ordenes WHERE tecnicoNombre = ?",
+                (nombreTecnico,),
+            )
+            ordenesAsignadas = cursor.fetchone()[0]
+            if ordenesAsignadas > 0:
+                raise ValueError(
+                    f"No se puede eliminar al técnico '{nombreTecnico}' porque tiene {ordenesAsignadas} orden(es) de servicio asignada(s)."
+                )
+
+            cursor.execute("DELETE FROM tecnicos WHERE id = ?", (idTecnico,))
             conexion.commit()
-        except RegistroNoEncontradoError as e:
-            registrarError(f"RegistroNoEncontradoError: {e}")
+        except (RegistroNoEncontradoError, ValueError) as e:
+            registrarError(f"{type(e).__name__}: {e}")
             raise
         except sqlite3.Error as e:
             registrarError(f"sqlite3.Error al eliminar técnico: {e}")
@@ -374,10 +421,9 @@ class GestorBaseDatos:
                 conexion.close()
 
     # --- OPERACIONES ÓRDENES ---
+
     def _filaAOrden(self, fila):
         """Reconstruye un objeto OrdenServicio desde una tupla obtenida de SQLite."""
-        from dispositivo import Computadora
-
         cliente = Cliente(fila[1], fila[2], fila[3])
         tecnico = Tecnico(fila[4], fila[5], fila[6])
         if fila[7] == "DispositivoMovil":
@@ -481,9 +527,7 @@ class GestorBaseDatos:
             )
             filas = cursor.fetchall()
             if not filas:
-                raise RegistroNoEncontradoError(
-                    f"No se encontraron órdenes con '{texto}'."
-                )
+                raise RegistroNoEncontradoError(f"No se encontraron órdenes con '{texto}'.")
             return [self._filaAOrden(f) for f in filas]
         except RegistroNoEncontradoError as e:
             registrarError(f"RegistroNoEncontradoError: {e}")
@@ -537,9 +581,7 @@ class GestorBaseDatos:
                 ),
             )
             if cursor.rowcount == 0:
-                raise RegistroNoEncontradoError(
-                    f"No existe una orden con el folio '{orden.folio}'."
-                )
+                raise RegistroNoEncontradoError(f"No existe una orden con el folio '{orden.folio}'.")
             conexion.commit()
             self._sincronizarTxt()
         except RegistroNoEncontradoError as e:
@@ -564,9 +606,7 @@ class GestorBaseDatos:
             cursor = conexion.cursor()
             cursor.execute("DELETE FROM ordenes WHERE folio = ?", (folioLimpio,))
             if cursor.rowcount == 0:
-                raise RegistroNoEncontradoError(
-                    f"No existe una orden con el folio '{folioLimpio}'."
-                )
+                raise RegistroNoEncontradoError(f"No existe una orden con el folio '{folioLimpio}'.")
             conexion.commit()
             self._sincronizarTxt()
         except RegistroNoEncontradoError as e:
